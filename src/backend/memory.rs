@@ -63,15 +63,21 @@ pub struct MemoryAccount {
 pub struct MemoryBackend<'vicinity> {
 	vicinity: &'vicinity MemoryVicinity,
 	state: BTreeMap<H160, MemoryAccount>,
+	transient_state: BTreeMap<H256, H256>,
 	logs: Vec<Log>,
 }
 
 impl<'vicinity> MemoryBackend<'vicinity> {
 	/// Create a new memory backend.
-	pub fn new(vicinity: &'vicinity MemoryVicinity, state: BTreeMap<H160, MemoryAccount>) -> Self {
+	pub fn new(
+		vicinity: &'vicinity MemoryVicinity,
+		state: BTreeMap<H160, MemoryAccount>,
+		transient_state: BTreeMap<H256, H256>,
+	) -> Self {
 		Self {
 			vicinity,
 			state,
+			transient_state,
 			logs: Vec::new(),
 		}
 	}
@@ -160,6 +166,13 @@ impl<'vicinity> Backend for MemoryBackend<'vicinity> {
 		self.state
 			.get(&address)
 			.map(|v| v.storage.get(&index).cloned().unwrap_or_default())
+			.unwrap_or_default()
+	}
+
+	fn transient_storage(&self, index: H256) -> H256 {
+		self.transient_state
+			.get(&index)
+			.cloned()
 			.unwrap_or_default()
 	}
 
