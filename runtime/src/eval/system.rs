@@ -90,6 +90,14 @@ pub fn base_fee<H: Handler>(runtime: &mut Runtime, handler: &H) -> Control<H> {
 	Control::Continue
 }
 
+pub fn blob_base_fee<H: Handler>(runtime: &mut Runtime, handler: &H) -> Control<H> {
+	let mut ret = H256::default();
+	handler.block_blob_base_fee().to_big_endian(&mut ret[..]);
+	push!(runtime, ret);
+
+	Control::Continue
+}
+
 pub fn extcodesize<H: Handler>(runtime: &mut Runtime, handler: &H) -> Control<H> {
 	pop!(runtime, address);
 	push_u256!(runtime, handler.code_size(address.into()));
@@ -223,6 +231,27 @@ pub fn sstore<H: Handler>(runtime: &mut Runtime, handler: &mut H) -> Control<H> 
 	});
 
 	match handler.set_storage(runtime.context.address, index, value) {
+		Ok(()) => Control::Continue,
+		Err(e) => Control::Exit(e.into()),
+	}
+}
+
+pub fn tload<H: Handler>(runtime: &mut Runtime, handler: &H) -> Control<H> {
+	pop!(runtime, index);
+	let value = handler.transient_storage(index);
+	push!(runtime, value);
+
+	event!(TLoad { index, value });
+
+	Control::Continue
+}
+
+pub fn tstore<H: Handler>(runtime: &mut Runtime, handler: &mut H) -> Control<H> {
+	pop!(runtime, index, value);
+
+	event!(TStore { index, value });
+
+	match handler.set_transient_storage(index, value) {
 		Ok(()) => Control::Continue,
 		Err(e) => Control::Exit(e.into()),
 	}
